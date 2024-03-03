@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
@@ -31,6 +32,55 @@ class _HomePageState extends State<HomePage> {
   bool _isAnalog = false;
   bool _isStrap = true;
   bool _isimage = false;
+  bool _isStopwatch = false;
+
+  int sec = 0;
+  int min = 0;
+  int hou = 0;
+  String strSec = "00";
+  String strMin = "00";
+  String strHou = "00";
+  Timer? timer;
+  bool started = false;
+  List laps = [];
+
+  void start() {
+    started = true;
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      sec++;
+      if (sec > 59) {
+        if (min > 59) {
+          hou++;
+          min = 0;
+        } else {
+          min++;
+          sec = 0;
+        }
+      }
+      setState(() {
+        min = min;
+        hou = hou;
+
+        strSec = (sec >= 10) ? "$sec" : "0$sec";
+        strHou = (sec >= 10) ? "$hou" : "0$hou";
+        strMin = (min >= 10) ? "$min" : "0$min";
+      });
+    });
+  }
+
+  void resetStopWatch() {
+    timer!.cancel();
+    setState(() {
+      started = false;
+      sec = 0;
+      min = 0;
+      hou = 0;
+
+      strSec = "00";
+      strMin = "00";
+      strHou = "00";
+    });
+  }
 
   List imagess = [
     "https://i.pinimg.com/564x/7b/5f/06/7b5f066bd5391ecb2252b5a53fe0708f.jpg",
@@ -49,7 +99,7 @@ class _HomePageState extends State<HomePage> {
     Size size = MediaQuery.sizeOf(context);
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xffB6BBC4),
+        backgroundColor: const Color(0xffFAF0E6),
         centerTitle: true,
         title: const Text(
           "Clock's",
@@ -65,12 +115,13 @@ class _HomePageState extends State<HomePage> {
               accountName: Text("ABHI GHOGHARI"),
               accountEmail: Text("abhighoghari@gmail.com"),
             ),
+            //Digital Watch
             Container(
-              margin: EdgeInsets.all(16),
+              margin: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   Text(
-                    "Time:${da.hour}: ${da.minute}: ${da.second} \n Date: ${da.day}: \n Day: ${da.weekday}",
+                    "Time:${da.hour}: ${da.minute}: ${da.second}: ${da.hour < 12 ? "AM" : "PM"}\n Date: ${da.day}: \n Day: ${da.weekday}",
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -79,13 +130,37 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            //Analog
+            //Stop Watch
             Container(
               margin: const EdgeInsets.all(15),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Analog clock"),
+                  const Text(
+                    "Stop Watch",
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                  Switch(
+                    value: _isStopwatch,
+                    onChanged: (val) => _isStopwatch = !_isStopwatch,
+                  ),
+                ],
+              ),
+            ),
+            //Analog Watch
+            Container(
+              margin: const EdgeInsets.all(15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Analog clock",
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
                   Switch(
                     value: _isAnalog,
                     onChanged: (val) => _isAnalog = !_isAnalog,
@@ -93,13 +168,16 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            //Strap
+            //Strap Watch
             Container(
               margin: const EdgeInsets.all(15),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Strap clock"),
+                  const Text(
+                    "Strap clock",
+                    style: TextStyle(fontSize: 16),
+                  ),
                   Switch(
                     value: _isStrap,
                     onChanged: (val) => _isStrap = !_isStrap,
@@ -113,7 +191,12 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Background Images"),
+                  const Text(
+                    "Select Images",
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
                   Switch(
                     value: _isimage,
                     onChanged: (val) => _isimage = !_isimage,
@@ -125,7 +208,8 @@ class _HomePageState extends State<HomePage> {
               visible: _isimage,
               child: Expanded(
                 child: SingleChildScrollView(
-                  // scrollDirection: Axis.horizontal,
+                  physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics()),
                   scrollDirection: Axis.vertical,
                   child: Column(
                     children: imagess
@@ -165,130 +249,160 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: 5,
-            sigmaY: 5,
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: _isimage
+                ? NetworkImage(backgroundimg)
+                : const NetworkImage(
+                    "https://i.pinimg.com/564x/fd/46/84/fd4684b7335f291e9bb9120cc330c268.jpg",
+                  ),
+            fit: BoxFit.fill,
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: _isimage
-                    ? NetworkImage(backgroundimg)
-                    : const NetworkImage(
-                        "https://i.pinimg.com/564x/fd/46/84/fd4684b7335f291e9bb9120cc330c268.jpg",
+        ),
+        padding: const EdgeInsets.all(15),
+        alignment: Alignment.center,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // AnalogWatch
+            Visibility(
+              visible: _isAnalog,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ...List.generate(
+                    60,
+                    (index) => Transform.rotate(
+                      angle: index * (pi * 2) / 60,
+                      child: Divider(
+                        endIndent: index % 5 == 0
+                            ? size.width * 0.88
+                            : size.width * 0.9,
+                        thickness: 3,
+                        color:
+                            index % 5 == 0 ? Colors.blueAccent : Colors.black54,
                       ),
-                fit: BoxFit.fill,
+                    ),
+                  ),
+                  //hour
+                  Transform.rotate(
+                    angle: pi / 2,
+                    child: Transform.rotate(
+                      angle: da.hour * (pi * 2) / 12,
+                      child: Divider(
+                        indent: 50,
+                        endIndent: size.width * 0.5 - 16,
+                        color: Colors.black,
+                        thickness: 4,
+                      ),
+                    ),
+                  ),
+                  //minute
+                  Transform.rotate(
+                    angle: pi / 2,
+                    child: Transform.rotate(
+                      angle: da.minute * (pi * 2) / 60,
+                      child: Divider(
+                        indent: 30,
+                        endIndent: size.width * 0.5 - 16,
+                        color: Colors.black,
+                        thickness: 3,
+                      ),
+                    ),
+                  ),
+                  //second
+                  Transform.rotate(
+                    angle: pi / 2,
+                    child: Transform.rotate(
+                      angle: da.second * (pi * 2) / 60,
+                      child: Divider(
+                        indent: 20,
+                        endIndent: size.width * 0.5 - 16,
+                        color: Colors.blueAccent,
+                        thickness: 2.5,
+                      ),
+                    ),
+                  ),
+                  const CircleAvatar(
+                    radius: 9,
+                    backgroundColor: Colors.grey,
+                  ),
+                ],
               ),
             ),
-            padding: const EdgeInsets.all(15),
-            alignment: Alignment.center,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // AnalogWatch
-                Visibility(
-                  visible: _isAnalog,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      ...List.generate(
-                        60,
-                        (index) => Transform.rotate(
-                          angle: index * (pi * 2) / 60,
-                          child: Divider(
-                            endIndent: index % 5 == 0
-                                ? size.width * 0.88
-                                : size.width * 0.9,
-                            thickness: 3,
-                            color: index % 5 == 0
-                                ? Colors.blueAccent
-                                : Colors.black54,
-                          ),
-                        ),
-                      ),
-                      //hour
-                      Transform.rotate(
-                        angle: pi / 2,
-                        child: Transform.rotate(
-                          angle: da.hour * (pi * 2) / 12,
-                          child: Divider(
-                            indent: 50,
-                            endIndent: size.width * 0.5 - 16,
-                            color: Colors.black,
-                            thickness: 4,
-                          ),
-                        ),
-                      ),
-                      //minute
-                      Transform.rotate(
-                        angle: pi / 2,
-                        child: Transform.rotate(
-                          angle: da.minute * (pi * 2) / 60,
-                          child: Divider(
-                            indent: 30,
-                            endIndent: size.width * 0.5 - 16,
-                            color: Colors.black,
-                            thickness: 3,
-                          ),
-                        ),
-                      ),
-                      //second
-                      Transform.rotate(
-                        angle: pi / 2,
-                        child: Transform.rotate(
-                          angle: da.second * (pi * 2) / 60,
-                          child: Divider(
-                            indent: 20,
-                            endIndent: size.width * 0.5 - 16,
-                            color: Colors.blueAccent,
-                            thickness: 2.5,
-                          ),
-                        ),
-                      ),
-                      const CircleAvatar(
-                        radius: 9,
-                        backgroundColor: Colors.grey,
-                      ),
-                    ],
+            // StrapWatch
+            Visibility(
+              visible: _isStrap,
+              child: Stack(
+                children: [
+                  // Hour
+                  Transform.scale(
+                    scale: 7,
+                    child: CircularProgressIndicator(
+                      value: da.hour / 12.toDouble(),
+                      strokeWidth: 1.7,
+                    ),
                   ),
-                ),
-                // StrapWatch
-                Visibility(
-                  visible: _isStrap,
-                  child: Stack(
-                    children: [
-                      // Hour
-                      Transform.scale(
-                        scale: 7,
-                        child: CircularProgressIndicator(
-                          value: da.hour / 12.toDouble(),
-                          strokeWidth: 1.7,
-                        ),
-                      ),
-                      // Minutes
-                      Transform.scale(
-                        scale: 5,
-                        child: CircularProgressIndicator(
-                          value: da.minute / 60.toDouble(),
-                          strokeWidth: 1.3,
-                        ),
-                      ),
-                      // Second
-                      Transform.scale(
-                        scale: 3,
-                        child: CircularProgressIndicator(
-                          value: da.second / 60.toDouble(),
-                          strokeWidth: 1.5,
-                        ),
-                      ),
-                    ],
+                  // Minutes
+                  Transform.scale(
+                    scale: 5,
+                    child: CircularProgressIndicator(
+                      value: da.minute / 60.toDouble(),
+                      strokeWidth: 1.3,
+                    ),
                   ),
-                ),
-              ],
+                  // Second
+                  Transform.scale(
+                    scale: 3,
+                    child: CircularProgressIndicator(
+                      value: da.second / 60.toDouble(),
+                      strokeWidth: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            Visibility(
+              visible: _isStopwatch,
+              child: CircleAvatar(
+                radius: 200,
+                backgroundColor: Colors.black12,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "$strHou : $strMin : $strSec",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 56,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(20),
+                    ),
+                    Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            start();
+                          },
+                          child: Text("${started ? "Started" : "Start"}"),
+                        ),
+                        const Spacer(),
+                        ElevatedButton(
+                          onPressed: () {
+                            resetStopWatch();
+                          },
+                          child: const Text("reset"),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
